@@ -70,7 +70,7 @@ public class QBittorrentController : Controller
     [HttpPost]
     public ActionResult AppVersion()
     {
-        return Ok("v4.3.2");
+        return Ok("v4.6.0");
     }
 
     [Route("app/webapiVersion")]
