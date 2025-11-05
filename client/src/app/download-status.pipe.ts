@@ -1,10 +1,8 @@
 import { Pipe, PipeTransform } from '@angular/core';
-import { FileSizePipe } from 'ngx-filesize';
 import { Download } from './models/download.model';
+import { FileSizePipe } from './filesize.pipe';
 
-@Pipe({
-  name: 'downloadStatus',
-})
+@Pipe({ name: 'downloadStatus' })
 export class DownloadStatusPipe implements PipeTransform {
   constructor(private pipe: FileSizePipe) {}
 
@@ -26,11 +24,7 @@ export class DownloadStatusPipe implements PipeTransform {
     }
 
     if (value.unpackingStarted) {
-      let progress = (value.bytesDone / value.bytesTotal) * 100;
-
-      if (isNaN(progress)) {
-        progress = 0;
-      }
+      const progress = (value.bytesDone / value.bytesTotal || 0) * 100;
 
       return `Unpacking ${progress.toFixed(2)}%`;
     }
@@ -44,11 +38,7 @@ export class DownloadStatusPipe implements PipeTransform {
     }
 
     if (value.downloadStarted) {
-      let progress = (value.bytesDone / value.bytesTotal) * 100;
-
-      if (isNaN(progress)) {
-        progress = 0;
-      }
+      const progress = (value.bytesDone / value.bytesTotal || 0) * 100;
 
       const speed = this.pipe.transform(value.speed, 'filesize');
 

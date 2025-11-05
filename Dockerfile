@@ -1,5 +1,5 @@
 # Stage 1 - Build the frontend
-FROM node:18-alpine3.18 AS node-build-env
+FROM node:22.16.0-alpine3.22 AS node-build-env
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
 ARG BUILDPLATFORM
@@ -10,9 +10,9 @@ WORKDIR /appclient
 
 RUN apk add --no-cache git python3 py3-pip make g++
 
+COPY client ./client
+COPY root ./root
 RUN \
-   echo "**** Cloning Source Code ****" && \
-   git clone https://github.com/rogerfar/rdt-client.git . && \
    cd client && \
    echo "**** Building Code  ****" && \
    npm ci && \
@@ -21,7 +21,7 @@ RUN \
 RUN ls -FCla /appclient/root
 
 # Stage 2 - Build the backend
-FROM mcr.microsoft.com/dotnet/sdk:8.0-bookworm-slim-amd64 AS dotnet-build-env
+FROM mcr.microsoft.com/dotnet/sdk:9.0-alpine AS dotnet-build-env
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
 ARG BUILDPLATFORM
@@ -30,15 +30,16 @@ ENV BUILDPLATFORM=${BUILDPLATFORM:-linux/amd64}
 RUN mkdir /appserver
 WORKDIR /appserver
 
+COPY server ./server
 RUN \
-   echo "**** Cloning Source Code ****" && \
-   git clone https://github.com/rogerfar/rdt-client.git . && \
    echo "**** Building Source Code for $TARGETPLATFORM on $BUILDPLATFORM ****" && \
    cd server && \
-   dotnet restore --no-cache RdtClient.sln && dotnet publish --no-restore -c Release -o out ; 
+   dotnet restore --no-cache RdtClient.sln && \
+   dotnet test && \
+   dotnet publish --no-restore -c Release -o out ; 
 
 # Stage 3 - Build runtime image
-FROM ghcr.io/linuxserver/baseimage-alpine:3.18
+FROM ghcr.io/linuxserver/baseimage-alpine:3.20
 ARG TARGETPLATFORM
 ENV TARGETPLATFORM=${TARGETPLATFORM:-linux/amd64}
 ARG BUILDPLATFORM
@@ -60,20 +61,20 @@ RUN \
    echo "**** Updating package information ****" && \
    apk update && \
    echo "**** Install pre-reqs ****" && \
-   apk add bash icu-libs krb5-libs libgcc libintl libssl1.1 libstdc++ zlib && \
+   apk add bash icu-libs krb5-libs libgcc libintl libssl3 libstdc++ zlib && \
    echo "**** Installing dotnet ****" && \
    mkdir -p /usr/share/dotnet
 
 RUN \
    if [ "$TARGETPLATFORM" = "linux/arm/v7" ] ; then \
-   wget https://download.visualstudio.microsoft.com/download/pr/c3bf3103-efdb-42e0-af55-bbf861a4215b/dc22eda8877933b8c6569e3823f18d21/aspnetcore-runtime-8.0.0-linux-musl-arm64.tar.gz && \
-   tar zxf aspnetcore-runtime-8.0.0-linux-musl-arm64.tar.gz -C /usr/share/dotnet ; \
+   wget https://download.visualstudio.microsoft.com/download/pr/59a041e1-921e-405e-8092-95333f80f9ca/63e83e3feb70e05ca05ed5db3c579be2/aspnetcore-runtime-9.0.0-linux-musl-arm.tar.gz && \
+   tar zxf aspnetcore-runtime-9.0.0-linux-musl-arm.tar.gz -C /usr/share/dotnet ; \
    elif [ "$TARGETPLATFORM" = "linux/arm64" ] ; then \
-   wget https://download.visualstudio.microsoft.com/download/pr/c3bf3103-efdb-42e0-af55-bbf861a4215b/dc22eda8877933b8c6569e3823f18d21/aspnetcore-runtime-8.0.0-linux-musl-arm64.tar.gz && \
-   tar zxf aspnetcore-runtime-8.0.0-linux-musl-arm64.tar.gz -C /usr/share/dotnet ; \
+   wget https://download.visualstudio.microsoft.com/download/pr/e137f557-83cb-4f55-b1c8-e5f59ccd3cba/b8ba6f2ab96d0961757b71b00c201f31/aspnetcore-runtime-9.0.0-linux-musl-arm64.tar.gz && \
+   tar zxf aspnetcore-runtime-9.0.0-linux-musl-arm64.tar.gz -C /usr/share/dotnet ; \
    else \
-   wget https://download.visualstudio.microsoft.com/download/pr/7aa33fc7-07fe-48c2-8e44-a4bfb4928535/3b96ec50970eee414895ef3a5b188bcd/aspnetcore-runtime-8.0.0-linux-musl-x64.tar.gz && \
-   tar zxf aspnetcore-runtime-8.0.0-linux-musl-x64.tar.gz -C /usr/share/dotnet ; \
+   wget https://download.visualstudio.microsoft.com/download/pr/86d7a513-fe71-4f37-b9ec-fdcf5566cce8/e72574fc82d7496c73a61f411d967d8e/aspnetcore-runtime-9.0.0-linux-musl-x64.tar.gz && \
+   tar zxf aspnetcore-runtime-9.0.0-linux-musl-x64.tar.gz -C /usr/share/dotnet ; \
    fi
 
 RUN \
@@ -89,7 +90,7 @@ ENV PATH "$PATH:/usr/share/dotnet"
 # Copy files for app
 WORKDIR /app
 COPY --from=dotnet-build-env /appserver/server/out .
-COPY --from=node-build-env /appclient/client/out ./wwwroot
+COPY --from=node-build-env /appclient/client/out/browser ./wwwroot
 COPY --from=node-build-env /appclient/root/ /
 
 # ports and volumes

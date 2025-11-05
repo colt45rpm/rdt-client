@@ -1,10 +1,10 @@
 using System.Diagnostics;
-using System.Net;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Hosting.WindowsServices;
 using RdtClient.Data.Data;
 using RdtClient.Data.Models.Internal;
+using RdtClient.Service;
 using RdtClient.Service.Middleware;
 using RdtClient.Service.Services;
 using Serilog;
@@ -43,7 +43,8 @@ if (appSettings.Logging?.File?.Path != null)
                                                        rollOnFileSizeLimit: true,
                                                        fileSizeLimitBytes: appSettings.Logging.File.FileSizeLimitBytes,
                                                        retainedFileCountLimit: appSettings.Logging.File.MaxRollingFiles,
-                                                       outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}")
+                                                       outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext}: {Message:lj}{NewLine}{Exception}",
+                                                       restrictedToMinimumLevel: LogEventLevel.Verbose)
                                          .WriteTo.Console()
                                          .MinimumLevel.ControlledBy(Settings.LoggingLevelSwitch)
                                          .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
@@ -68,13 +69,10 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
            options.SlidingExpiration = true;
        });
 
-builder.Services.AddAuthorization( options => 
-{ 
-    options.AddPolicy("AuthSetting",
-                      policyCorrectUser =>
-                      {
-                          policyCorrectUser.Requirements.Add(new AuthSettingRequirement());
-                      }); 
+
+builder.Services.AddAuthorizationBuilder().AddPolicy("AuthSetting", policyCorrectUser =>
+{
+    policyCorrectUser.Requirements.Add(new AuthSettingRequirement());
 });
 
 
@@ -118,7 +116,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddResponseCaching();
 builder.Services.AddMemoryCache();
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddHttpClient();
+builder.Services.RegisterHttpClients();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSession();
 
@@ -135,9 +133,7 @@ builder.Services.AddSignalR(hubOptions =>
 builder.Host.UseWindowsService();
 
 RdtClient.Data.DiConfig.Config(builder.Services, appSettings);
-RdtClient.Service.DiConfig.Config(builder.Services);
-
-ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+builder.Services.RegisterRdtServices();
 
 try
 {
@@ -169,6 +165,7 @@ try
     if (basePath != null)
     {
         app.UseMiddleware<BaseHrefMiddleware>(basePath);
+        app.UsePathBase($"/{basePath.TrimStart('/').TrimEnd('/')}/");
     }
 
     app.UseMiddleware<RequestLoggingMiddleware>();
@@ -178,14 +175,12 @@ try
     app.UseAuthentication();
 
     app.UseAuthorization();
-            
-    app.UseEndpoints(endpoints =>
-    {
-        endpoints.MapHub<RdtHub>("/hub");
-        endpoints.MapControllers();
-    });
 
-    app.MapWhen(x => !x.Request.Path.StartsWithSegments("/api"), routeBuilder =>
+    app.MapHub<RdtHub>("/hub");
+
+    app.MapControllers();
+
+    app.UseWhen(x => !x.Request.Path.StartsWithSegments("/api"), routeBuilder =>
     {
         routeBuilder.UseSpaStaticFiles();
         routeBuilder.UseSpa(spa =>

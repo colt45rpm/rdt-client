@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using System.Reflection;
 using Aria2NET;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,17 +14,8 @@ namespace RdtClient.Web.Controllers;
 
 [Authorize(Policy = "AuthSetting")]
 [Route("Api/Settings")]
-public class SettingsController : Controller
+public class SettingsController(Settings settings, Torrents torrents) : Controller
 {
-    private readonly Settings _settings;
-    private readonly Torrents _torrents;
-
-    public SettingsController(Settings settings, Torrents torrents)
-    {
-        _settings = settings;
-        _torrents = torrents;
-    }
-
     [HttpGet]
     [Route("")]
     public ActionResult Get()
@@ -34,14 +26,14 @@ public class SettingsController : Controller
 
     [HttpPut]
     [Route("")]
-    public async Task<ActionResult> Update([FromBody] IList<SettingProperty>? settings)
+    public async Task<ActionResult> Update([FromBody] IList<SettingProperty>? settings1)
     {
-        if (settings == null)
+        if (settings1 == null)
         {
             return BadRequest();
         }
 
-        await _settings.Update(settings);
+        await settings.Update(settings1);
         
         return Ok();
     }
@@ -50,8 +42,20 @@ public class SettingsController : Controller
     [Route("Profile")]
     public async Task<ActionResult<Profile>> Profile()
     {
-        var profile = await _torrents.GetProfile();
+        var profile = await torrents.GetProfile();
         return Ok(profile);
+    }
+
+    [HttpGet]
+    [Route("Version")]
+    public ActionResult<Version> Version()
+    {
+        var version = Assembly.GetExecutingAssembly().GetName().Version!;
+
+        return Ok(new
+        {
+            Version = version
+        });
     }
         
     [HttpPost]
@@ -72,7 +76,7 @@ public class SettingsController : Controller
 
         if (!Directory.Exists(path))
         {
-            throw new Exception($"Path {path} does not exist");
+            throw new($"Path {path} does not exist");
         }
 
         var testFile = $"{path}/test.txt";
@@ -97,13 +101,14 @@ public class SettingsController : Controller
         var download = new Download
         {
             Link = "https://34.download.real-debrid.com/speedtest/testDefault.rar",
-            Torrent = new Torrent
+            Torrent = new()
             {
-                RdName = ""
+                DownloadClient = Settings.Get.DownloadClient.Client == Data.Enums.DownloadClient.Symlink ? Data.Enums.DownloadClient.Bezzad : Settings.Get.DownloadClient.Client,
+                RdName = "testDefault.rar"
             }
         };
 
-        var downloadClient = new DownloadClient(download, download.Torrent, downloadPath);
+        var downloadClient = new DownloadClient(download, download.Torrent, downloadPath, null);
 
         await downloadClient.Start();
 

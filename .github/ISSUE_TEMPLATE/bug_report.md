@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Use this template to report actual bugs. If you are looking for general help, please post a discussion.
 title: ''
 labels: ''
 assignees: ''
@@ -9,7 +9,7 @@ assignees: ''
 
 **What version are you using?**
 
-**Wat OS are you running?**
+**What OS are you running?**
 
 **Are you using Docker or as a service?**
 

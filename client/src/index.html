@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -6,9 +6,10 @@
     <base href="/" />
     <script>
       (function () {
-        if (window.location.host !== 'localhost:4200') {
-          var pathSegment = window.location.pathname.split("/")[1];
-          window["_app_base"] = pathSegment ? "/" + pathSegment + "/" : "/";
+        const baseElement = document.querySelector("base");
+
+        if (baseElement) {
+          window["_app_base"] = baseElement.getAttribute("href");
           console.log("setting base href to " + window["_app_base"]);
         }
       })();

@@ -4,12 +4,16 @@ import { Observable } from 'rxjs';
 import { Profile } from './models/profile.model';
 import { Setting } from './models/setting.model';
 import { APP_BASE_HREF } from '@angular/common';
+import { Version } from './models/version.model';
 
 @Injectable({
   providedIn: 'root',
 })
 export class SettingsService {
-  constructor(private http: HttpClient, @Inject(APP_BASE_HREF) private baseHref: string) {}
+  constructor(
+    private http: HttpClient,
+    @Inject(APP_BASE_HREF) private baseHref: string,
+  ) {}
 
   public get(): Observable<Setting[]> {
     return this.http.get<Setting[]>(`${this.baseHref}Api/Settings`);
@@ -21,6 +25,10 @@ export class SettingsService {
 
   public getProfile(): Observable<Profile> {
     return this.http.get<Profile>(`${this.baseHref}Api/Settings/Profile`);
+  }
+
+  public getVersion(): Observable<Version> {
+    return this.http.get<Version>(`${this.baseHref}Api/Settings/Version`);
   }
 
   public testPath(path: string): Observable<void> {

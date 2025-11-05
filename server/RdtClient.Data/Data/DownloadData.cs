@@ -1,20 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using RdtClient.Data.Models.Data;
 using Download = RdtClient.Data.Models.Data.Download;
 
 namespace RdtClient.Data.Data;
 
-public class DownloadData
+public class DownloadData(DataContext dataContext)
 {
-    private readonly DataContext _dataContext;
-
-    public DownloadData(DataContext dataContext)
-    {
-        _dataContext = dataContext;
-    }
-
     public async Task<List<Download>> GetForTorrent(Guid torrentId)
     {
-        return await _dataContext.Downloads
+        return await dataContext.Downloads
                                  .AsNoTracking()
                                  .Where(m => m.TorrentId == torrentId)
                                  .ToListAsync();
@@ -22,7 +16,7 @@ public class DownloadData
 
     public async Task<Download?> GetById(Guid downloadId)
     {
-        return await _dataContext.Downloads
+        return await dataContext.Downloads
                                  .Include(m => m.Torrent)
                                  .AsNoTracking()
                                  .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
@@ -30,27 +24,28 @@ public class DownloadData
 
     public async Task<Download?> Get(Guid torrentId, String path)
     {
-        return await _dataContext.Downloads
+        return await dataContext.Downloads
                                  .Include(m => m.Torrent)
                                  .AsNoTracking()
                                  .FirstOrDefaultAsync(m => m.TorrentId == torrentId && m.Path == path);
     }
 
-    public async Task<Download> Add(Guid torrentId, String path)
+    public async Task<Download> Add(Guid torrentId, DownloadInfo downloadInfo)
     {
         var download = new Download
         {
             DownloadId = Guid.NewGuid(),
             TorrentId = torrentId,
-            Path = path,
+            FileName = downloadInfo.FileName,
+            Path = downloadInfo.RestrictedLink,
             Added = DateTimeOffset.UtcNow,
             DownloadQueued = DateTimeOffset.UtcNow,
             RetryCount = 0
         };
 
-        await _dataContext.Downloads.AddAsync(download);
+        await dataContext.Downloads.AddAsync(download);
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
 
@@ -59,7 +54,7 @@ public class DownloadData
 
     public async Task UpdateUnrestrictedLink(Guid downloadId, String unrestrictedLink)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -69,14 +64,31 @@ public class DownloadData
 
         dbDownload.Link = unrestrictedLink;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
+
+        await TorrentData.VoidCache();
+    }
+
+    public async Task UpdateFileName(Guid downloadId, String fileName)
+    {
+        var dbDownload = await dataContext.Downloads
+                                           .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
+
+        if (dbDownload == null)
+        {
+            return;
+        }
+
+        dbDownload.FileName = fileName;
+
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
 
     public async Task UpdateDownloadStarted(Guid downloadId, DateTimeOffset? dateTime)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -86,14 +98,14 @@ public class DownloadData
 
         dbDownload.DownloadStarted = dateTime;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
 
     public async Task UpdateDownloadFinished(Guid downloadId, DateTimeOffset? dateTime)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -103,14 +115,14 @@ public class DownloadData
             
         dbDownload.DownloadFinished = dateTime;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
 
     public async Task UpdateUnpackingQueued(Guid downloadId, DateTimeOffset? dateTime)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -120,14 +132,14 @@ public class DownloadData
 
         dbDownload.UnpackingQueued = dateTime;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
 
     public async Task UpdateUnpackingStarted(Guid downloadId, DateTimeOffset? dateTime)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -137,14 +149,14 @@ public class DownloadData
 
         dbDownload.UnpackingStarted = dateTime;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
 
     public async Task UpdateUnpackingFinished(Guid downloadId, DateTimeOffset? dateTime)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -154,14 +166,14 @@ public class DownloadData
 
         dbDownload.UnpackingFinished = dateTime;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
         
     public async Task UpdateCompleted(Guid downloadId, DateTimeOffset? dateTime)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -171,14 +183,14 @@ public class DownloadData
 
         dbDownload.Completed = dateTime;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
 
     public async Task UpdateError(Guid downloadId, String? error)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -188,14 +200,14 @@ public class DownloadData
 
         dbDownload.Error = error;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
-
+    
     public async Task UpdateRetryCount(Guid downloadId, Int32 retryCount)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -205,14 +217,14 @@ public class DownloadData
 
         dbDownload.RetryCount = retryCount;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
 
     public async Task UpdateRemoteId(Guid downloadId, String remoteId)
     {
-        var dbDownload = await _dataContext.Downloads
+        var dbDownload = await dataContext.Downloads
                                            .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
 
         if (dbDownload == null)
@@ -222,31 +234,27 @@ public class DownloadData
 
         dbDownload.RemoteId = remoteId;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
     }
 
     public async Task DeleteForTorrent(Guid torrentId)
     {
-        var downloads = await _dataContext.Downloads
+        var downloads = await dataContext.Downloads
                                           .Where(m => m.TorrentId == torrentId)
                                           .ToListAsync();
 
-        _dataContext.Downloads.RemoveRange(downloads);
+        dataContext.Downloads.RemoveRange(downloads);
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }
 
     public async Task Reset(Guid downloadId)
     {
-        var dbDownload = await _dataContext.Downloads
-                                           .FirstOrDefaultAsync(m => m.DownloadId == downloadId);
-
-        if (dbDownload == null)
-        {
-            throw new Exception($"Cannot find download with ID {downloadId}");
-        }
+        var dbDownload = await dataContext.Downloads
+                                           .FirstOrDefaultAsync(m => m.DownloadId == downloadId) 
+                         ?? throw new($"Cannot find download with ID {downloadId}");
 
         dbDownload.RetryCount = 0;
         dbDownload.Link = null;
@@ -260,7 +268,7 @@ public class DownloadData
         dbDownload.Completed = null;
         dbDownload.Error = null;
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await TorrentData.VoidCache();
     }

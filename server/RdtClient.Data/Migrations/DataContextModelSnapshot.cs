@@ -15,7 +15,7 @@ namespace RdtClient.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.1");
+            modelBuilder.HasAnnotation("ProductVersion", "9.0.9");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -233,6 +233,9 @@ namespace RdtClient.Data.Migrations
                     b.Property<string>("Error")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("FileName")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Link")
                         .HasColumnType("TEXT");
 
@@ -290,6 +293,9 @@ namespace RdtClient.Data.Migrations
                     b.Property<string>("Category")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("ClientKind")
+                        .HasColumnType("INTEGER");
+
                     b.Property<DateTimeOffset?>("Completed")
                         .HasColumnType("TEXT");
 
@@ -324,6 +330,9 @@ namespace RdtClient.Data.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("FinishedAction")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("FinishedActionDelay")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Hash")

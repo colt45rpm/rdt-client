@@ -1,5 +1,19 @@
 table {
   tr {
     cursor: pointer;
+    td.break-all {
+      word-break: break-all;
+    }
+  }
+}
+
+.flex-container {
+  display: flex;
+  flex: 1 1 0;
+  gap: 20px;
+  flex-direction: row;
+
+  @media screen and (max-width: 1279px) {
+    flex-direction: column;
   }
 }

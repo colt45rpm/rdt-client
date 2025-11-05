@@ -1,14 +1,14 @@
 # Real-Debrid Torrent Client
 
-This is a web interface to manage your torrents on Real-Debrid, AllDebrid or Premiumize. It supports the following features:
+This is a web interface to manage your torrents on Real-Debrid, AllDebrid, Premiumize TorBox or DebridLink. It supports the following features:
 
 - Add new torrents through magnets or files
-- Download all files from Real-Debrid, AllDebrid or Premiumize to your local machine automatically
+- Download all files from Real-Debrid, AllDebrid, Premiumize or TorBox to your local machine automatically
 - Unpack all files when finished downloading
 - Implements a fake qBittorrent API so you can hook up other applications like Sonarr, Radarr or Couchpotato.
-- Built with Angular 15 and .NET 8
+- Built with Angular 15 and .NET 9
 
-**You will need a Premium service at Real-Debrid, AllDebrid or Premiumize!**
+**You will need a Premium service at Real-Debrid, AllDebrid, Premiumize or Torbox!**
 
 [Click here to sign up for Real-Debrid.](https://real-debrid.com/?id=1348683)
 
@@ -16,68 +16,32 @@ This is a web interface to manage your torrents on Real-Debrid, AllDebrid or Pre
 
 [Click here to sign up for Premiumize.](https://www.premiumize.me/)
 
+[Click here to sign up for TorBox.](https://torbox.app/subscription?referral=3d25018e-f30d-4c4b-a714-48c04bc76765)
+
+[Click here to sign up for DebridLink.](https://debrid-link.fr/id/6duif)
+
 <sub>(referal links so I can get a few free premium days)</sub>
 
 ## Docker Setup
 
-You can run the docker container on Windows, Linux. To get started either use _Docker Run_ or _Docker Compose_.
+Please see our separate Docker setup Read Me.
 
-### Docker Run
-
-```console
-docker run --pull=always
-		   --volume /your/download/path/:/data/downloads \
-		   --volume /your/storage/path/:/data/db \
-		   --log-driver json-file \
-		   --log-opt max-size=10m \
-		   -p 6500:6500 \
-		   --name rdtclient \
-		   rogerfar/rdtclient:latest
-```
-
-Replace `/your/download/path/` with your local path to download files to. For Windows i.e. `C:/Downloads`.
-Replace `/your/storage/path/` with your local path to store persistent database and log files in. For Windows i.e. `C:/Docker/rdt-client`.
-
-### Docker Compose
-
-You can use the provided docker compose to run:
-
-```yaml
-version: '3.3'
-services:
-    rdtclient:
-        container_name: rdtclient
-        volumes:
-            - 'D:/Downloads/:/data/downloads'
-            - 'D:/Docker/rdt-client/:/data/db'
-        image: rogerfar/rdtclient
-        restart: always
-        logging:
-            driver: json-file
-            options:
-                max-size: 10m
-        ports:
-            - '6500:6500'
-```
-
-And to run:
-
-```console
-docker-compose up -d
-```
-
-Replace the paths in `volumes` as in the above step.
+[Readme for Docker](README-DOCKER.md)
 
 ## Run as a Service
 
 Instead of running in Docker you can install it as a service in Windows or Linux.
+
 ## Windows Service
 
-1. Make sure you have the ASP.NET Core Runtime 8 installed: [https://dotnet.microsoft.com/download/dotnet/8.0](https://dotnet.microsoft.com/download/dotnet/8.0)
-1. Get the latest zip file from the Releases page and extract it to your host.
-1. Open the `appsettings.json` file and replace the `LogLevel` `Path` to a path on your host.
-1. In `appsettings.json` replace the `Database` `Path` to a path on your host.
-1. When using Windows paths, make sure to escape the slashes. For example: `D:\\RdtClient\\db\\rdtclient.db`
+1. Make sure you have the **ASP.NET Core Runtime 9.0.0** installed: [https://dotnet.microsoft.com/download/dotnet/9.0](https://dotnet.microsoft.com/download/dotnet/9.0)
+2. Get the latest zip file from the Releases page and extract it to your host.
+3. Open the `appsettings.json` file and replace the `LogLevel` `Path` to a path on your host.
+4. In `appsettings.json` replace the `Database` `Path` to a path on your host.
+5. When using Windows paths, make sure to escape the slashes. For example: `D:\\RdtClient\\db\\rdtclient.db`
+6. Do one of these:
+	* Run `RdtClient.Web.exe` to start the client.
+ 	* Run `service-install.bat` to install the client as a service. This will install `RdtClient.Web.exe` as a service which make the client start in the backgorund when the computer starts. (You probably want to do this if you are going to use this with Sonarr etc...)
 
 ## Linux Service
 
@@ -92,7 +56,7 @@ Instead of running in Docker you can install it as a service in Linux.
 
     ```rm packages-microsoft-prod.deb```  
 
-    ```sudo apt-get update && sudo apt-get install -y dotnet-sdk-8.0```  
+    ```sudo apt-get update && sudo apt-get install -y dotnet-sdk-9.0```  
 
 2. Get latest archive from [releases](https://github.com/rogerfar/rdt-client/releases):  
 ```wget <zip_url>```
@@ -147,16 +111,6 @@ If you use Proxmox for your homelab, you can run rdt-client in a linux container
 
 Currently there 4 available download clients:
 
-#### Internal Downloader
-
-This experimental [downloader](https://github.com/rogerfar/Downloader.NET) can be used to download files with multiple sections in parallel.
-
-It has the following options:
-
-- Download speed (in MB/s): This number indicates the speed in MB/s per download over all parallel downloads and chunks.
-- Parallel connections per download: When a file is downloaded it is split in sections, this setting indicates how many sections you will download in parallel.
-- Connection Timeout: This number indicates the timeout in milliseconds before a download chunk times out. It will retry each chunk 5 times before completely failing.
-
 #### Bezzad Downloader
 
 This [downloader](https://github.com/bezzad/Downloader) can be used to download files in parallel and with multiple chunks.
@@ -193,6 +147,17 @@ Required configuration:
 Suggested configuration:
 - Automatic retry downloads > 3
 
+#### Synology Download Station
+
+The Synology Download Station downloader uses an external Download Station server. You will need to set this up yourself.
+
+It has the following options:
+
+- Url: The URL to the Synology DownloadStation. A common URL is `http://127.0.0.1:5000`
+- Username: The username to use when connecting to the Synology DownloadStation.
+- Password: The password to use when connecting to the Synology DownloadStation.
+- Download Path: The root path to download the file on the Synology DownloadStation host. If left empty, the default path configured on your Download Station server will be used.
+
 ### Troubleshooting
 
 - If you forgot your logins simply delete the `rdtclient.db` and restart the service.
@@ -228,12 +193,12 @@ By default the application runs in the root of your hosted address (i.e. https:/
 - NodeJS
 - NPM
 - Angular CLI
-- .NET 8
+- .NET 9
 - Visual Studio 2022
 - (optional) Resharper
 
 1. Open the client folder project in VS Code and run `npm install`.
-1. To debug run `ng serve`, to build run `ng build --prod`.
+1. To debug run `ng serve`, to build run `ng build -c production`.
 1. Open the Visual Studio 2019 project `RdtClient.sln` and `Publish` the `RdtClient.Web` to the given `PublishFolder` target.
 1. When debugging, make sure to run `RdtClient.Web.dll` and not `IISExpress`.
 1. The result is found in `Publish`.
@@ -245,3 +210,14 @@ By default the application runs in the root of your hosted address (i.e. https:/
 1. To stop: `docker stop rdtclient`
 1. To remove: `docker rm rdtclient`
 1. Or use `docker-build.bat`
+
+## Misc Install Notes
+
+### Rootless Podman, Linux Host, and CIFS Connections
+
+RDT Client read and write permission tests fail if the CIFS connection is not setup properly, despite permissions working inspection.  In the Web GUI, it will report access denied, and in the log file you will see exceptions like this ([dotnet issue](https://github.com/dotnet/runtime/issues/42790)): 
+```
+System.IO.IOException: Permission denied
+```
+The **nobrl** has to be specified in your CIFS connection - [man page](https://linux.die.net/man/8/mount.cifs). 
+Example: ```Options=_netdev,credentials=/etc/samba/credentials/600file,rw,uid=SUBUID,gid=SBUGID,nobrl,file_mode=0770,dir_mode=0770,noperm```

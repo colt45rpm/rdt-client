@@ -4,22 +4,15 @@ using System.Text;
 
 namespace RdtClient.Service.Middleware;
 
-public class RequestLoggingMiddleware
+public class RequestLoggingMiddleware(RequestDelegate next, ILoggerFactory loggerFactory)
 {
-    private readonly RequestDelegate _next;
-    private readonly ILogger _logger;
-
-    public RequestLoggingMiddleware(RequestDelegate next, ILoggerFactory loggerFactory)
-    {
-        _next = next;
-        _logger = loggerFactory.CreateLogger<RequestLoggingMiddleware>();
-    }
+    private readonly ILogger _logger = loggerFactory.CreateLogger<RequestLoggingMiddleware>();
 
     public async Task Invoke(HttpContext context)
     {
         if (!_logger.IsEnabled(LogLevel.Debug) || (!context.Request.Path.StartsWithSegments("/api/v2") && !context.Request.Path.StartsWithSegments("/api/torrents")))
         {
-            await _next(context);
+            await next(context);
 
             return;
         }
@@ -31,11 +24,11 @@ public class RequestLoggingMiddleware
             requestLog += $", QueryString: {context.Request.QueryString}";
         }
 
-        if (context.Request.HasFormContentType && context.Request.Form.Any())
+        if (context.Request.HasFormContentType && context.Request.Form.Count > 0)
         {
             requestLog += $", Form: {String.Join(", ", context.Request.Form.Select(f => $"{f.Key}: {f.Value}"))}";
         }
-        else if (context.Request.ContentType?.ToLower().Contains("application/json") == true)
+        else if (context.Request.ContentType?.Contains("application/json", StringComparison.CurrentCultureIgnoreCase) == true)
         {
             var body = await ReadRequestBodyAsync(context.Request);
             requestLog += $", Body: {body}";
@@ -43,7 +36,7 @@ public class RequestLoggingMiddleware
 
         _logger.LogDebug(requestLog);
 
-        await _next(context);
+        await next(context);
     }
 
     private static async Task<String> ReadRequestBodyAsync(HttpRequest request)

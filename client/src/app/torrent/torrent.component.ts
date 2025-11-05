@@ -3,11 +3,29 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { saveAs } from 'file-saver-es';
 import { Torrent } from '../models/torrent.model';
 import { TorrentService } from '../torrent.service';
+import { NgClass, DatePipe } from '@angular/common';
+import { CdkCopyToClipboard } from '@angular/cdk/clipboard';
+import { FormsModule } from '@angular/forms';
+import { TorrentStatusPipe } from '../torrent-status.pipe';
+import { DownloadStatusPipe } from '../download-status.pipe';
+import { DecodeURIPipe } from '../decode-uri.pipe';
+import { FileSizePipe } from '../filesize.pipe';
 
 @Component({
   selector: 'app-torrent',
   templateUrl: './torrent.component.html',
   styleUrls: ['./torrent.component.scss'],
+  imports: [
+    NgClass,
+    CdkCopyToClipboard,
+    FormsModule,
+    DatePipe,
+    TorrentStatusPipe,
+    DownloadStatusPipe,
+    DecodeURIPipe,
+    FileSizePipe,
+  ],
+  standalone: true,
 })
 export class TorrentComponent implements OnInit {
   public torrent: Torrent;
@@ -21,6 +39,7 @@ export class TorrentComponent implements OnInit {
   public isDeleteModalActive: boolean;
   public deleteError: string;
   public deleting: boolean;
+  public deleteSelectAll: boolean;
   public deleteData: boolean;
   public deleteRdTorrent: boolean;
   public deleteLocalFiles: boolean;
@@ -47,29 +66,31 @@ export class TorrentComponent implements OnInit {
 
   public updating: boolean;
 
-  constructor(private activatedRoute: ActivatedRoute, private router: Router, private torrentService: TorrentService) {}
+  constructor(
+    private activatedRoute: ActivatedRoute,
+    private router: Router,
+    private torrentService: TorrentService,
+  ) {}
 
   ngOnInit(): void {
     this.activatedRoute.params.subscribe((params) => {
       const torrentId = params['id'];
 
-      this.torrentService.get(torrentId).subscribe(
-        (torrent) => {
+      this.torrentService.get(torrentId).subscribe({
+        next: (torrent) => {
           this.torrent = torrent;
 
           this.torrentService.update$.subscribe((result) => {
             this.update(result);
           });
         },
-        () => {
-          this.router.navigate(['/']);
-        }
-      );
+        error: () => this.router.navigate(['/']),
+      });
     });
   }
 
   public update(torrents: Torrent[]): void {
-    const updatedTorrent = torrents.firstOrDefault((m) => m.torrentId === this.torrent.torrentId);
+    const updatedTorrent = torrents.find((m) => m.torrentId === this.torrent.torrentId);
 
     if (updatedTorrent == null) {
       return;
@@ -85,10 +106,10 @@ export class TorrentComponent implements OnInit {
         .split('')
         .map(function (c) {
           return c.charCodeAt(0);
-        })
+        }),
     );
 
-    var blob = new Blob([byteArray], { type: 'application/x-bittorrent' });
+    const blob = new Blob([byteArray], { type: 'application/x-bittorrent' });
     saveAs(blob, `${this.torrent.rdName}.torrent`);
   }
 
@@ -110,18 +131,18 @@ export class TorrentComponent implements OnInit {
 
     this.torrentService
       .delete(this.torrent.torrentId, this.deleteData, this.deleteRdTorrent, this.deleteLocalFiles)
-      .subscribe(
-        () => {
+      .subscribe({
+        next: () => {
           this.isDeleteModalActive = false;
           this.deleting = false;
 
           this.router.navigate(['/']);
         },
-        (err) => {
+        error: (err) => {
           this.deleteError = err.error;
           this.deleting = false;
-        }
-      );
+        },
+      });
   }
 
   public showRetryModal(): void {
@@ -137,18 +158,18 @@ export class TorrentComponent implements OnInit {
   public retryOk(): void {
     this.retrying = true;
 
-    this.torrentService.retry(this.torrent.torrentId).subscribe(
-      () => {
+    this.torrentService.retry(this.torrent.torrentId).subscribe({
+      next: () => {
         this.isRetryModalActive = false;
         this.retrying = false;
 
         this.router.navigate(['/']);
       },
-      (err) => {
+      error: (err) => {
         this.retryError = err.error;
         this.retrying = false;
-      }
-    );
+      },
+    });
   }
 
   public showDownloadRetryModal(downloadId: string): void {
@@ -165,16 +186,16 @@ export class TorrentComponent implements OnInit {
   public downloadRetryOk(): void {
     this.downloadRetrying = true;
 
-    this.torrentService.retryDownload(this.downloadRetryId).subscribe(
-      () => {
+    this.torrentService.retryDownload(this.downloadRetryId).subscribe({
+      next: () => {
         this.isDownloadRetryModalActive = false;
         this.downloadRetrying = false;
       },
-      (err) => {
+      error: (err) => {
         this.downloadRetryError = err.error;
         this.downloadRetrying = false;
-      }
-    );
+      },
+    });
   }
 
   public showUpdateSettingsModal(): void {
@@ -206,15 +227,24 @@ export class TorrentComponent implements OnInit {
     this.torrent.deleteOnError = this.updateSettingsDeleteOnError;
     this.torrent.lifetime = this.updateSettingsTorrentLifetime;
 
-    this.torrentService.update(this.torrent).subscribe(
-      () => {
+    this.torrentService.update(this.torrent).subscribe({
+      next: () => {
         this.isUpdateSettingsModalActive = false;
         this.updating = false;
       },
-      () => {
+      error: () => {
         this.isUpdateSettingsModalActive = false;
         this.updating = false;
-      }
-    );
+      },
+    });
+  }
+  toggleDeleteSelectAllOptions() {
+    this.deleteData = this.deleteSelectAll;
+    this.deleteRdTorrent = this.deleteSelectAll;
+    this.deleteLocalFiles = this.deleteSelectAll;
+  }
+
+  updateDeleteSelectAll() {
+    this.deleteSelectAll = this.deleteData && this.deleteRdTorrent && this.deleteLocalFiles;
   }
 }

@@ -11,5 +11,11 @@ public enum Provider
     AllDebrid,
 
     [Description("Premiumize")]
-    Premiumize
+    Premiumize,
+
+    [Description("TorBox")]
+    TorBox,
+
+    [Description("DebridLink")]
+    DebridLink
 }

@@ -8,18 +8,9 @@ using LogLevel = Microsoft.Extensions.Logging.LogLevel;
 
 namespace RdtClient.Service.BackgroundServices;
 
-public class WatchFolderChecker : BackgroundService
+public class WatchFolderChecker(ILogger<WatchFolderChecker> logger, IServiceProvider serviceProvider) : BackgroundService
 {
-    private readonly ILogger<WatchFolderChecker> _logger;
-    private readonly IServiceProvider _serviceProvider;
-
     private DateTime _prevCheck = DateTime.MinValue;
-
-    public WatchFolderChecker(ILogger<WatchFolderChecker> logger, IServiceProvider serviceProvider)
-    {
-        _logger = logger;
-        _serviceProvider = serviceProvider;
-    }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -28,10 +19,10 @@ public class WatchFolderChecker : BackgroundService
             await Task.Delay(1000, stoppingToken);
         }
 
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var torrentService = scope.ServiceProvider.GetRequiredService<Torrents>();
             
-        _logger.LogInformation("WatchFolderChecker started.");
+        logger.LogInformation("WatchFolderChecker started.");
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -84,13 +75,14 @@ public class WatchFolderChecker : BackgroundService
 
                     try
                     {
-                        _logger.Log(LogLevel.Debug, "Processing {torrentFile}", torrentFile);
+                        logger.Log(LogLevel.Debug, "Processing {torrentFile}", torrentFile);
 
                         var torrent = new Torrent
                         {
                             DownloadClient = Settings.Get.DownloadClient.Client,
                             Category = Settings.Get.Watch.Default.Category,
                             HostDownloadAction = Settings.Get.Watch.Default.HostDownloadAction,
+                            FinishedActionDelay = Settings.Get.Watch.Default.FinishedActionDelay,
                             DownloadAction = Settings.Get.Watch.Default.OnlyDownloadAvailableFiles
                                 ? TorrentDownloadAction.DownloadAvailableFiles
                                 : TorrentDownloadAction.DownloadAll,
@@ -108,24 +100,34 @@ public class WatchFolderChecker : BackgroundService
                         if (fileInfo.Extension == ".torrent")
                         {
                             var torrentFileContents = await File.ReadAllBytesAsync(torrentFile, stoppingToken);
-                            await torrentService.UploadFile(torrentFileContents, torrent);
+                            await torrentService.AddFileToDebridQueue(torrentFileContents, torrent);
                         }
                         else if (fileInfo.Extension == ".magnet")
                         {
                             var magnetLink = await File.ReadAllTextAsync(torrentFile, stoppingToken);
-                            await torrentService.UploadMagnet(magnetLink, torrent);
+                            await torrentService.AddMagnetToDebridQueue(magnetLink, torrent);
                         }
-
-                        var processedPath = Path.Combine(processedStorePath, fileInfo.Name);
 
                         if (!Directory.Exists(processedStorePath))
                         {
                             Directory.CreateDirectory(processedStorePath);
                         }
+                        
+                        var processedPath = Path.Combine(processedStorePath, fileInfo.Name);
+
+                        if (File.Exists(processedPath))
+                        {
+                            File.Delete(processedPath);
+
+                            logger.Log(LogLevel.Warning,
+                                       "File {torrentFileName} replaced in {processedStorePath} - it already existed and new torrent with same filename was added",
+                                       fileInfo.Name,
+                                       processedStorePath);
+                        }
 
                         File.Move(torrentFile, processedPath);
 
-                        _logger.Log(LogLevel.Debug, "Moved {torrentFile} to {processedPath}", torrentFile, processedPath);
+                        logger.Log(LogLevel.Debug, "Moved {torrentFile} to {processedPath}", torrentFile, processedPath);
                     }
                     catch
                     {
@@ -135,13 +137,23 @@ public class WatchFolderChecker : BackgroundService
                         }
 
                         var processedPath = Path.Combine(errorStorePath, fileInfo.Name);
+
+                        if (File.Exists(processedPath))
+                        {
+                            File.Delete(processedPath);
+
+                            logger.Log(LogLevel.Warning,
+                                       "File {torrentFileName} replaced in {errorStorePath} - it already existed and new torrent with same filename was added",
+                                       fileInfo.Name,
+                                       errorStorePath);
+                        }
                         File.Move(torrentFile, processedPath);
                     }
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Unexpected error occurred in ProviderUpdater: {ex.Message}");
+                logger.LogError(ex, $"Unexpected error occurred in WatchFolderChecker: {ex.Message}");
             }
         }
     }

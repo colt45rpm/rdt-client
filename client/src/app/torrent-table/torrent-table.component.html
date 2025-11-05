@@ -1,7 +1,9 @@
-<div class="notification is-danger is-light" *ngIf="error && error.length > 0">
-  An error has occured: {{ error }}<br />
-  Please refresh the screen after fixing this error.
-</div>
+@if (error && error.length > 0) {
+  <div class="notification is-danger is-light">
+    An error has occurred: {{ error }}<br />
+    Please refresh the screen after fixing this error.
+  </div>
+}
 <div class="table-container">
   <table class="table is-fullwidth is-hoverable">
     <thead>
@@ -9,80 +11,75 @@
         <th>
           <input
             type="checkbox"
-            (click)="toggleSelectAll($event)"
+            (click)="toggleDeleteSelectAll($event)"
             [checked]="selectedTorrents.length > 0 && selectedTorrents.length === torrents.length"
           />
         </th>
-        <th>Name</th>
-        <th>Category</th>
-        <th>Priority</th>
-        <th>Files</th>
-        <th>Downloads</th>
-        <th>Size</th>
-        <th>Status</th>
+        <th (click)="sort('rdName')">Name</th>
+        <th (click)="sort('category')">Category</th>
+        <th (click)="sort('priority')">Priority</th>
+        <th (click)="sort('rdSeeders')">Seeders</th>
+        <th (click)="sort('files.length')">Files</th>
+        <th (click)="sort('downloads.length')">Downloads</th>
+        <th (click)="sort('rdSize')">Size</th>
+        <th (click)="sort('added')">Requested</th>
+        <th (click)="sort('status')">Status</th>
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let torrent of torrents; trackBy: trackByMethod">
-        <td>
-          <input
-            type="checkbox"
-            (click)="toggleSelect(torrent.torrentId)"
-            [checked]="selectedTorrents.contains(torrent.torrentId)"
-          />
-        </td>
-        <td (click)="openTorrent(torrent.torrentId)">
-          {{ torrent.rdName }}
-        </td>
-        <td>
-          {{ torrent.category }}
-        </td>
-        <td>
-          {{ torrent.priority }}
-        </td>
-        <td>
-          {{ torrent.files.length | number }}
-        </td>
-        <td>
-          {{ torrent.downloads.length | number }}
-        </td>
-        <td>
-          {{ torrent.rdSize | filesize }}
-        </td>
-        <td>
-          {{ torrent | status }}
-        </td>
-      </tr>
+      @for (torrent of torrents | sort: sortProperty : sortDirection; track torrent.torrentId) {
+        <tr>
+          <td>
+            <input
+              type="checkbox"
+              (click)="toggleSelect(torrent.torrentId)"
+              [checked]="selectedTorrents.includes(torrent.torrentId)"
+            />
+          </td>
+          <td (click)="openTorrent(torrent.torrentId)" class="break-all">
+            {{ torrent.rdName }}
+          </td>
+          <td>
+            {{ torrent.category }}
+          </td>
+          <td>
+            {{ torrent.priority }}
+          </td>
+          <td>
+            {{ torrent.rdSeeders }}
+          </td>
+          <td>
+            {{ torrent.files.length | number }}
+          </td>
+          <td>
+            {{ torrent.downloads.length | number }}
+          </td>
+          <td>
+            {{ torrent.rdSize | filesize }}
+          </td>
+          <td>
+            {{ torrent.added | date: "medium" }}
+          </td>
+          <td>
+            {{ torrent | status }}
+          </td>
+        </tr>
+      }
     </tbody>
   </table>
 
-  <div fxLayout.lt-lg="column" fxLayout.gt-sm="row" fxLayoutGap="20px">
-    <button
-      class="button is-danger"
-      (click)="showDeleteModal()"
-      [disabled]="selectedTorrents.length === 0"
-      *ngIf="torrents.length > 0"
-    >
-      Delete Selected
-    </button>
-
-    <button
-      class="button is-primary"
-      (click)="showRetryModal()"
-      [disabled]="selectedTorrents.length === 0"
-      *ngIf="torrents.length > 0"
-    >
-      Retry Selected
-    </button>
-    
-    <button
-      class="button is-primary"
-      (click)="changeSettingsModal()"
-      [disabled]="selectedTorrents.length === 0"
-      *ngIf="torrents.length > 0"
-    >
-      Change Settings
-    </button>
+  <div class="flex-container">
+    @if (torrents.length > 0) {
+      <button class="button is-danger" (click)="showDeleteModal()" [disabled]="selectedTorrents.length === 0">
+        Delete Selected
+      </button>
+      <button class="button is-primary" (click)="showRetryModal()" [disabled]="selectedTorrents.length === 0">
+        Retry Selected
+      </button>
+      <button class="button is-primary" (click)="changeSettingsModal()" [disabled]="selectedTorrents.length === 0">
+        Change Settings
+      </button>
+    }
   </div>
 </div>
 
@@ -99,27 +96,33 @@
         <label class="label"></label>
         <div class="control">
           <label class="checkbox">
-            <input type="checkbox" [(ngModel)]="deleteData" />
+            <input type="checkbox" [(ngModel)]="deleteData" (change)="updateDeleteSelectAll()" />
             Delete Torrents from client
           </label>
           <br />
           <label class="checkbox">
-            <input type="checkbox" [(ngModel)]="deleteRdTorrent" />
+            <input type="checkbox" [(ngModel)]="deleteRdTorrent" (change)="updateDeleteSelectAll()" />
             Delete Torrents from provider
           </label>
           <br />
           <label class="checkbox">
-            <input type="checkbox" [(ngModel)]="deleteLocalFiles" />
+            <input type="checkbox" [(ngModel)]="deleteLocalFiles" (change)="updateDeleteSelectAll()" />
             Delete local files
+          </label>
+          <br />
+          <br />
+          <label class="checkbox">
+            <input type="checkbox" [(ngModel)]="deleteSelectAll" (change)="toggleDeleteSelectAllOptions()" />
+            Select All
           </label>
         </div>
       </div>
       <div class="notification is-primary">
         Deleting a torrent from Real-Debrid will automatically delete it here too.
       </div>
-      <div class="notification is-danger is-light" *ngIf="deleteError?.length > 0">
-        Error deleting torrent: {{ deleteError }}
-      </div>
+      @if (deleteError?.length > 0) {
+        <div class="notification is-danger is-light">Error deleting torrent: {{ deleteError }}</div>
+      }
     </section>
     <footer class="modal-card-foot">
       <button
@@ -150,9 +153,9 @@
         This action will delete all the torrent data + all local downloads. Then it will re-add the original magnet link
         or torrent file to the debrid provider.
       </p>
-      <div class="notification is-danger is-light" *ngIf="retryError?.length > 0">
-        Error retrying torrent: {{ retryError }}
-      </div>
+      @if (retryError?.length > 0) {
+        <div class="notification is-danger is-light">Error retrying torrent: {{ retryError }}</div>
+      }
     </section>
     <footer class="modal-card-foot">
       <button
@@ -183,109 +186,107 @@
         <div class="control select is-fullwidth">
           <select [(ngModel)]="updateSettingsDownloadClient">
             <option [ngValue]="null"></option>
-            <option [ngValue]="0">Internal Downloader</option>
+            <option [ngValue]="0">Bezzad</option>
             <option [ngValue]="1">Aria2c</option>
             <option [ngValue]="2">Symlink Downloader</option>
+            <option [ngValue]="3">Synology DownloadStation</option>
           </select>
         </div>
         <p class="help">
           Select which downloader is used to download this torrent from the debrid provider to your host.
         </p>
       </div>
-        <div class="field">
-          <label class="label">Post Download Action</label>
-          <div class="control select is-fullwidth">
-            <select [(ngModel)]="updateSettingsHostDownloadAction">
-              <option [ngValue]="0">Download all files to host</option>
-              <option [ngValue]="1">Don't download any files to host</option>
-            </select>
-          </div>
-          <p class="help">
-            When a torrent is finished downloading on the provider, perform this action. Use this setting if you only want
-            to add files to Real-Debrid but not download them to the host.
-          </p>
+      <div class="field">
+        <label class="label">Post Download Action</label>
+        <div class="control select is-fullwidth">
+          <select [(ngModel)]="updateSettingsHostDownloadAction">
+            <option [ngValue]="0">Download all files to host</option>
+            <option [ngValue]="1">Don't download any files to host</option>
+          </select>
         </div>
-        <div class="field">
-          <label class="label">Category</label>
-          <div class="control">
-            <input class="input" type="text" [(ngModel)]="updateSettingsCategory" />
-          </div>
-          <p class="help">The category becomes a sub-folder in your main download path.</p>
-        </div>
-        <div class="field">
-          <label class="label">Priority</label>
-          <div class="control">
-            <input class="input" type="number" step="1" [(ngModel)]="updateSettingsPriority" />
-          </div>
-          <p class="help">
-            Set the priority for this torrent where 1 is the highest. When empty it will be assigned the lowest priority.
-          </p>
-        </div>
-        <div class="field">
-          <label class="label">Automatic retry downloads</label>
-          <div class="control">
-            <input
-              class="input"
-              type="number"
-              max="1000"
-              min="0"
-              step="1"
-              [(ngModel)]="updateSettingsDownloadRetryAttempts"
-            />
-          </div>
-          <p class="help">When a single download fails it will retry it this many times before marking it as failed.</p>
-        </div>
-        <div class="field">
-          <label class="label">Automatic retry torrent</label>
-          <div class="control">
-            <input
-              class="input"
-              type="number"
-              max="1000"
-              min="0"
-              step="1"
-              [(ngModel)]="updateSettingsTorrentRetryAttempts"
-            />
-          </div>
-          <p class="help">
-            When a single download has failed multiple times (see setting above) or when the torrent itself received an
-            error it will retry the full torrent this many times before marking it failed.
-          </p>
-        </div>
-        <div class="field">
-          <label class="label">Delete download when in error</label>
-          <div class="control">
-            <input class="input" type="number" max="1000" min="0" step="1" [(ngModel)]="updateSettingsDeleteOnError" />
-          </div>
-          <p class="help">
-            When a download has been in error for this many minutes, delete it from the provider and the client. 0 to
-            disable.
-          </p>
-        </div>
-        <div class="field">
-          <label class="label">Torrent maximum lifetime</label>
-          <div class="control">
-            <input
-              class="input"
-              type="number"
-              max="100000"
-              min="0"
-              step="1"
-              [(ngModel)]="updateSettingsTorrentLifetime"
-            />
-          </div>
-          <p class="help">
-            The maximum lifetime of a torrent in minutes. When this time has passed, mark the torrent as error. If the
-            torrent is completed and has downloads, the lifetime setting will not apply. 0 to disable.
-          </p>
-        </div>
-
-
-
-
-      <div class="notification is-danger is-light" *ngIf="changeSettingsError?.length > 0">
-        Error changing settings: {{ changeSettingsError }}
+        <p class="help">
+          When a torrent is finished downloading on the provider, perform this action. Use this setting if you only want
+          to add files to Real-Debrid but not download them to the host.
+        </p>
       </div>
+      <div class="field">
+        <label class="label">Category</label>
+        <div class="control">
+          <input class="input" type="text" [(ngModel)]="updateSettingsCategory" />
+        </div>
+        <p class="help">The category becomes a sub-folder in your main download path.</p>
+      </div>
+      <div class="field">
+        <label class="label">Priority</label>
+        <div class="control">
+          <input class="input" type="number" step="1" [(ngModel)]="updateSettingsPriority" />
+        </div>
+        <p class="help">
+          Set the priority for this torrent where 1 is the highest. When empty it will be assigned the lowest priority.
+        </p>
+      </div>
+      <div class="field">
+        <label class="label">Automatic retry downloads</label>
+        <div class="control">
+          <input
+            class="input"
+            type="number"
+            max="1000"
+            min="0"
+            step="1"
+            [(ngModel)]="updateSettingsDownloadRetryAttempts"
+          />
+        </div>
+        <p class="help">When a single download fails it will retry it this many times before marking it as failed.</p>
+      </div>
+      <div class="field">
+        <label class="label">Automatic retry torrent</label>
+        <div class="control">
+          <input
+            class="input"
+            type="number"
+            max="1000"
+            min="0"
+            step="1"
+            [(ngModel)]="updateSettingsTorrentRetryAttempts"
+          />
+        </div>
+        <p class="help">
+          When a single download has failed multiple times (see setting above) or when the torrent itself received an
+          error it will retry the full torrent this many times before marking it failed.
+        </p>
+      </div>
+      <div class="field">
+        <label class="label">Delete download when in error</label>
+        <div class="control">
+          <input class="input" type="number" max="1000" min="0" step="1" [(ngModel)]="updateSettingsDeleteOnError" />
+        </div>
+        <p class="help">
+          When a download has been in error for this many minutes, delete it from the provider and the client. 0 to
+          disable.
+        </p>
+      </div>
+      <div class="field">
+        <label class="label">Torrent maximum lifetime</label>
+        <div class="control">
+          <input
+            class="input"
+            type="number"
+            max="100000"
+            min="0"
+            step="1"
+            [(ngModel)]="updateSettingsTorrentLifetime"
+          />
+        </div>
+        <p class="help">
+          The maximum lifetime of a torrent in minutes. When this time has passed, mark the torrent as error. If the
+          torrent is completed and has downloads, the lifetime setting will not apply. 0 to disable.
+        </p>
+      </div>
+
+      @if (changeSettingsError?.length > 0) {
+        <div class="notification is-danger is-light">Error changing settings: {{ changeSettingsError }}</div>
+      }
     </section>
     <footer class="modal-card-foot">
       <button
@@ -296,7 +297,12 @@
       >
         Save
       </button>
-      <button class="button" (click)="changeSettingsCancel()" [disabled]="changingSettings" [ngClass]="{ 'is-loading': changingSettings }">
+      <button
+        class="button"
+        (click)="changeSettingsCancel()"
+        [disabled]="changingSettings"
+        [ngClass]="{ 'is-loading': changingSettings }"
+      >
         Cancel
       </button>
     </footer>

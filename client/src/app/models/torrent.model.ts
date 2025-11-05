@@ -8,6 +8,7 @@ export class Torrent {
   public hostDownloadAction: number;
   public downloadAction: number;
   public finishedAction: number;
+  public finishedActionDelay: number;
   public downloadMinSize: number;
   public includeRegex: string;
   public excludeRegex: string;
@@ -62,11 +63,13 @@ export class TorrentFileAvailability {
 }
 
 export enum RealDebridStatus {
-  Processing = 0,
-  WaitingForFileSelection = 1,
-  Downloading = 2,
-  Finished = 3,
-  Uploading = 4,
+  Queued = 0,
+
+  Processing = 1,
+  WaitingForFileSelection = 2,
+  Downloading = 3,
+  Finished = 4,
+  Uploading = 5,
 
   Error = 99,
 }

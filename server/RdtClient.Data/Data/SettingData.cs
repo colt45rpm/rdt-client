@@ -7,27 +7,18 @@ using RdtClient.Data.Models.Internal;
 
 namespace RdtClient.Data.Data;
 
-public class SettingData
+public class SettingData(DataContext dataContext, ILogger<SettingData> logger)
 {
-    private readonly DataContext _dataContext;
-    private readonly ILogger<SettingData> _logger;
-
-    public static DbSettings Get { get; } = new DbSettings();
+    public static DbSettings Get { get; } = new();
 
     public static IList<SettingProperty> GetAll()
     {
-        return GetSettings(Get, null).ToList();
-    }
-
-    public SettingData(DataContext dataContext, ILogger<SettingData> logger)
-    {
-        _dataContext = dataContext;
-        _logger = logger;
+        return GetSettings(Get, null);
     }
 
     public async Task Update(IList<SettingProperty> settings)
     {
-        var dbSettings = await _dataContext.Settings.ToListAsync();
+        var dbSettings = await dataContext.Settings.ToListAsync();
 
         foreach (var dbSetting in dbSettings)
         {
@@ -39,14 +30,14 @@ public class SettingData
             }
         }
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await ResetCache();
     }
 
     public async Task Update(String settingId, Object? value)
     {
-        var dbSetting = await _dataContext.Settings.FirstOrDefaultAsync(m => m.SettingId == settingId);
+        var dbSetting = await dataContext.Settings.FirstOrDefaultAsync(m => m.SettingId == settingId);
 
         if (dbSetting == null)
         {
@@ -55,18 +46,18 @@ public class SettingData
 
         dbSetting.Value = value?.ToString();
 
-        await _dataContext.SaveChangesAsync();
+        await dataContext.SaveChangesAsync();
 
         await ResetCache();
     }
 
     public async Task ResetCache()
     {
-        var settings = await _dataContext.Settings.AsNoTracking().ToListAsync();
+        var settings = await dataContext.Settings.AsNoTracking().ToListAsync();
 
         if (settings.Count == 0)
         {
-            throw new Exception("No settings found, please restart");
+            throw new("No settings found, please restart");
         }
 
         SetSettings(settings, Get, null);
@@ -74,7 +65,7 @@ public class SettingData
 
     public async Task Seed()
     {
-        var dbSettings = await _dataContext.Settings.AsNoTracking().ToListAsync();
+        var dbSettings = await dataContext.Settings.AsNoTracking().ToListAsync();
 
         var expectedSettings = GetSettings(Get, null).Where(m => m.Type != "Object").Select(m => new Setting
         {
@@ -84,22 +75,22 @@ public class SettingData
 
         var newSettings = expectedSettings.Where(m => dbSettings.All(p => p.SettingId != m.SettingId)).ToList();
 
-        if (newSettings.Any())
+        if (newSettings.Count > 0)
         {
-            await _dataContext.Settings.AddRangeAsync(newSettings);
-            await _dataContext.SaveChangesAsync();
+            await dataContext.Settings.AddRangeAsync(newSettings);
+            await dataContext.SaveChangesAsync();
         }
 
         var oldSettings = dbSettings.Where(m => expectedSettings.All(p => p.SettingId != m.SettingId)).ToList();
 
-        if (oldSettings.Any())
+        if (oldSettings.Count > 0)
         {
-            _dataContext.Settings.RemoveRange(oldSettings);
-            await _dataContext.SaveChangesAsync();
+            dataContext.Settings.RemoveRange(oldSettings);
+            await dataContext.SaveChangesAsync();
         }
     }
 
-    private static IEnumerable<SettingProperty> GetSettings(Object defaultSetting, String? parent)
+    private static List<SettingProperty> GetSettings(Object defaultSetting, String? parent)
     {
         var result = new List<SettingProperty>();
 
@@ -133,7 +124,7 @@ public class SettingData
                 if (property.PropertyType.IsEnum)
                 {
                     settingProperty.Type = "Enum";
-                    settingProperty.EnumValues = new Dictionary<Int32, String>();
+                    settingProperty.EnumValues = [];
 
                     foreach (var e in Enum.GetValues(property.PropertyType).Cast<Enum>())
                     {
@@ -182,8 +173,18 @@ public class SettingData
                 {
                     if (property.PropertyType.IsEnum)
                     {
-                        var newValue = Enum.Parse(property.PropertyType, setting.Value ?? "0");
-                        property.SetValue(defaultSetting, newValue);
+                        try
+                        {
+                            var newValue = Enum.Parse(property.PropertyType, setting.Value ?? "0");
+                            property.SetValue(defaultSetting, newValue);
+                        }
+                        catch
+                        {
+                            logger.LogWarning("Invalid value for setting {propertyName}: {setting.Value}", propertyName, setting.Value);
+
+                            var defaultValue = property.GetValue(defaultSetting);
+                            property.SetValue(defaultSetting, defaultValue);
+                        }
                     }
                     else
                     {
@@ -200,7 +201,10 @@ public class SettingData
                         }
                         else
                         {
-                            _logger.LogWarning($"Invalid value for setting {propertyName}: {setting.Value}");
+                            logger.LogWarning("Invalid value for setting {propertyName}: {setting.Value}", propertyName, setting.Value);
+
+                            var defaultValue = property.GetValue(defaultSetting);
+                            property.SetValue(defaultSetting, defaultValue);
                         }
                     }
                 }

@@ -3,16 +3,18 @@ using Microsoft.AspNetCore.Http;
 
 namespace RdtClient.Service.Middleware;
 
-public class BaseHrefMiddleware
+public partial class BaseHrefMiddleware(RequestDelegate next, String basePath)
 {
-    private readonly RequestDelegate _next;
-    private readonly String _basePath;
+    [GeneratedRegex(@"<base href=""/""")]
+    private partial Regex BodyRegex();
 
-    public BaseHrefMiddleware(RequestDelegate next, String basePath)
-    {
-        _next = next;
-        _basePath = $"/{basePath.TrimStart('/').TrimEnd('/')}/";
-    }
+    [GeneratedRegex("(<script.*?src=\")(.*?)(\".*?</script>)")]
+    private partial Regex ScriptRegex();
+
+    [GeneratedRegex("(<link.*?href=\")(.*?)(\".*?>)")]
+    private partial Regex LinkRegex();
+
+    private readonly String _basePath = $"/{basePath.TrimStart('/').TrimEnd('/')}/";
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -24,26 +26,28 @@ public class BaseHrefMiddleware
 
             context.Response.Body = newBody;
 
-            await _next(context);
+            await next(context);
 
             context.Response.Body = originalBody;
             newBody.Seek(0, SeekOrigin.Begin);
             var responseBody = await new StreamReader(newBody).ReadToEndAsync();
 
-            // ReSharper disable once ConditionalAccessQualifierIsNonNullableAccordingToAPIContract
-            if (context.Response.ContentType?.Contains("text/html") == true)
+            if (context.Response.StatusCode == 200)
             {
-                responseBody = Regex.Replace(responseBody, @"<base href=""/""", @$"<base href=""{_basePath}""");
-                
-                responseBody = Regex.Replace(responseBody, "(<script.*?src=\")(.*?)(\".*?</script>)", $"$1{_basePath}$2$3");
-                responseBody = Regex.Replace(responseBody, "(<link.*?href=\")(.*?)(\".*?>)", $"$1{_basePath}$2$3");
+                if (context.Response.ContentType?.Contains("text/html") == true)
+                {
+                    responseBody = BodyRegex().Replace(responseBody, @$"<base href=""{_basePath}""");
 
-                context.Response.Headers.Remove("Content-Length");
-                await context.Response.WriteAsync(responseBody);
-            }
-            else
-            {
-                await context.Response.BodyWriter.WriteAsync(newBody.ToArray());
+                    responseBody = ScriptRegex().Replace(responseBody, $"$1{_basePath}$2$3");
+                    responseBody = LinkRegex().Replace(responseBody, $"$1{_basePath}$2$3");
+
+                    context.Response.Headers.Remove("Content-Length");
+                    await context.Response.WriteAsync(responseBody);
+                }
+                else
+                {
+                    await context.Response.BodyWriter.WriteAsync(newBody.ToArray());
+                }
             }
         }
         finally

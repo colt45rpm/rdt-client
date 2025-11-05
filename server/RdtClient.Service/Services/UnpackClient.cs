@@ -1,32 +1,24 @@
 ﻿using System.Diagnostics;
 using RdtClient.Data.Models.Data;
 using RdtClient.Service.Helpers;
+using RdtClient.Service.Services.TorrentClients;
 using SharpCompress.Archives;
 using SharpCompress.Archives.Rar;
 using SharpCompress.Archives.Zip;
 
 namespace RdtClient.Service.Services;
 
-public class UnpackClient
+public class UnpackClient(Download download, String destinationPath)
 {
     public Boolean Finished { get; private set; }
-        
-    public String? Error { get; private set; }
-        
-    public Int32 Progess { get; private set; }
-        
-    private readonly Download _download;
-    private readonly String _destinationPath;
-    private readonly Torrent _torrent;
-    
-    private readonly CancellationTokenSource _cancellationTokenSource = new CancellationTokenSource();
 
-    public UnpackClient(Download download, String destinationPath)
-    {
-        _download = download;
-        _destinationPath = destinationPath;
-        _torrent = download.Torrent ?? throw new Exception($"Torrent is null");
-    }
+    public String? Error { get; private set; }
+
+    public Int32 Progess { get; private set; }
+
+    private readonly Torrent _torrent = download.Torrent ?? throw new($"Torrent is null");
+
+    private readonly CancellationTokenSource _cancellationTokenSource = new();
 
     public void Start()
     {
@@ -34,12 +26,7 @@ public class UnpackClient
 
         try
         {
-            var filePath = DownloadHelper.GetDownloadPath(_destinationPath, _torrent, _download);
-
-            if (filePath == null)
-            {
-                throw new Exception("Invalid download path");
-            }
+            var filePath = DownloadHelper.GetDownloadPath(destinationPath, _torrent, download) ?? throw new("Invalid download path");
 
             Task.Run(async delegate
             {
@@ -51,7 +38,7 @@ public class UnpackClient
         }
         catch (Exception ex)
         {
-            Error = $"An unexpected error occurred preparing download {_download.Link} for torrent {_torrent.RdName}: {ex.Message}";
+            Error = $"An unexpected error occurred preparing download {download.Link} for torrent {_torrent.RdName}: {ex.Message}";
             Finished = true;
         }
     }
@@ -70,26 +57,26 @@ public class UnpackClient
                 return;
             }
 
-            var extractPath = _destinationPath;
+            var extractPath = destinationPath;
             String? extractPathTemp = null;
 
             var archiveEntries = await GetArchiveFiles(filePath);
 
             if (!archiveEntries.Any(m => m.StartsWith(_torrent.RdName + @"\")) && !archiveEntries.Any(m => m.StartsWith(_torrent.RdName + "/")))
             {
-                extractPath = Path.Combine(_destinationPath, _torrent.RdName!);
+                extractPath = Path.Combine(destinationPath, _torrent.RdName!);
             }
 
             if (archiveEntries.Any(m => m.Contains(".r00")))
             {
                 extractPathTemp = Path.Combine(extractPath, Guid.NewGuid().ToString());
-                
+
                 if (!Directory.Exists(extractPathTemp))
                 {
                     Directory.CreateDirectory(extractPathTemp);
                 }
             }
-            
+
             if (extractPathTemp != null)
             {
                 Extract(filePath, extractPathTemp, cancellationToken);
@@ -116,16 +103,22 @@ public class UnpackClient
 
                 await FileHelper.Delete(filePath);
             }
+
+            if (_torrent.ClientKind == Data.Enums.Provider.TorBox)
+            {
+                TorBoxTorrentClient.MoveHashDirContents(extractPath, _torrent);
+            }
         }
         catch (Exception ex)
         {
-            Error = $"An unexpected error occurred unpacking {_download.Link} for torrent {_torrent.RdName}: {ex.Message}";
+            Error = $"An unexpected error occurred unpacking {download.Link} for torrent {_torrent.RdName}: {ex.Message}";
         }
         finally
         {
             Finished = true;
         }
     }
+
 
     private static async Task<IList<String>> GetArchiveFiles(String filePath)
     {
@@ -145,7 +138,7 @@ public class UnpackClient
 
         var entries = archive.Entries
                              .Where(entry => !entry.IsDirectory)
-                             .Select(m => m.Key)
+                             .Select(m => m.Key!)
                              .ToList();
 
         archive.Dispose();
@@ -175,10 +168,10 @@ public class UnpackClient
                                    d =>
                                    {
                                        Debug.WriteLine(d);
-                                       Progess = (Int32) Math.Round(d);
+                                       Progess = (Int32)Math.Round(d);
                                    },
                                    cancellationToken: cancellationToken);
-        
+
         archive.Dispose();
 
         GC.Collect();

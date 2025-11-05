@@ -9,25 +9,18 @@ using RdtClient.Service.Services;
 
 namespace RdtClient.Service.BackgroundServices;
 
-public class Startup : IHostedService
+public class Startup(IServiceProvider serviceProvider) : IHostedService
 {
     public static Boolean Ready { get; private set; }
-
-    private readonly IServiceProvider _serviceProvider;
-
-    public Startup(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-    }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var version = Assembly.GetEntryAssembly()?.GetName().Version;
         
-        using var scope = _serviceProvider.CreateScope();
+        using var scope = serviceProvider.CreateScope();
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Startup>>();
 
-        logger.LogWarning($"Starting host on version {version}");
+        logger.LogWarning("Starting host on version {version}", version);
 
         var dbContext = scope.ServiceProvider.GetRequiredService<DataContext>();
         await dbContext.Database.MigrateAsync(cancellationToken);

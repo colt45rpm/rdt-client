@@ -4,6 +4,9 @@ namespace RdtClient.Data.Enums;
 
 public enum LogLevel
 {
+    [Description("Verbose")]
+    Verbose,
+
     [Description("Debug")]
     Debug,
 

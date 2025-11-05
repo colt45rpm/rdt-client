@@ -11,7 +11,7 @@ public static class DiConfig
     {
         if (String.IsNullOrWhiteSpace(appSettings.Database?.Path))
         {
-            throw new Exception("Invalid database path found in appSettings");
+            throw new("Invalid database path found in appSettings");
         }
 
         var connectionString = $"Data Source={appSettings.Database.Path}";
@@ -19,7 +19,7 @@ public static class DiConfig
 
         services.AddScoped<DownloadData>();
         services.AddScoped<SettingData>();
-        services.AddScoped<TorrentData>();
+        services.AddScoped<ITorrentData, TorrentData>();
         services.AddScoped<UserData>();
     }
 }

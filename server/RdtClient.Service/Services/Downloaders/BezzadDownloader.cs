@@ -22,6 +22,7 @@ public class BezzadDownloader : IDownloader
     public BezzadDownloader(String uri, String filePath)
     {
         _logger = Log.ForContext<BezzadDownloader>();
+        _logger.Debug($"Instantiated new Bezzad Downloader for URI {uri} to filePath {filePath}");
 
         _uri = uri;
         _filePath = filePath;
@@ -29,9 +30,9 @@ public class BezzadDownloader : IDownloader
         var settingProxyServer = Settings.Get.DownloadClient.ProxyServer;
 
         // For all options, see https://github.com/bezzad/Downloader
-        _downloadConfiguration = new DownloadConfiguration
+        _downloadConfiguration = new()
         {
-            MaxTryAgainOnFailover = 5,
+            MaxTryAgainOnFailure = 5,
             RangeDownload = false,
             ClearPackageOnCompletionWithFailure = true,
             ReserveStorageSpaceBeforeStartingDownload = false,
@@ -55,7 +56,7 @@ public class BezzadDownloader : IDownloader
             _downloadConfiguration.RequestConfiguration.Proxy = new WebProxy(new Uri(settingProxyServer), false);
         }
 
-        _downloadService = new DownloadService(_downloadConfiguration);
+        _downloadService = new(_downloadConfiguration);
 
         _downloadService.DownloadProgressChanged += (_, args) =>
         {
@@ -65,7 +66,7 @@ public class BezzadDownloader : IDownloader
             }
 
             DownloadProgress.Invoke(this,
-                                     new DownloadProgressEventArgs
+                                     new()
                                      {
                                          Speed = (Int64)args.BytesPerSecondSpeed,
                                          BytesDone = args.ReceivedBytesSize,
@@ -87,7 +88,7 @@ public class BezzadDownloader : IDownloader
             }
 
             DownloadComplete?.Invoke(this,
-                                     new DownloadCompleteEventArgs
+                                     new()
                                      {
                                          Error = error
                                      });
@@ -96,7 +97,7 @@ public class BezzadDownloader : IDownloader
         };
     }
 
-    public Task<String?> Download()
+    public Task<String> Download()
     {
         _logger.Debug($"Starting download of {_uri}, writing to path: {_filePath}");
 
@@ -107,7 +108,7 @@ public class BezzadDownloader : IDownloader
 
         _ = Task.Run(StartTimer);
 
-        return Task.FromResult<String?>(Guid.NewGuid().ToString());
+        return Task.FromResult(Guid.NewGuid().ToString());
     }
 
     public Task Cancel()

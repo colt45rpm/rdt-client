@@ -4,6 +4,313 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased
+
+## [2.0.119] - 2025-10-13
+### Removed
+- Removed internal downloader from the GUI.
+
+## [2.0.118] - 2025-10-06
+### Added
+- Added some fake qBittorrent API calls for decluttarr.
+
+## [2.0.117] - 2025-10-06
+### Removed
+- Removed internal downloader and migrated to the Bezzad downloader.
+
+## [2.0.116] - 2025-08-04
+### Added
+- Added setting to ban certain trackers from being added. Will filter by the torrent source or announcement urls.
+
+### Changed
+- Upgraded to Angular 20.
+
+## [2.0.115] - 2025-07-28
+### Added
+- Added setting to delay the finish action.
+
+### Fixed
+- Make sure the Real-Debrid provider times out when trying to add a new torrent.
+
+## [2.0.114] - 2025-06-21
+### Added
+- Add Select All functionality to the delete dialog in individual torrent screen, thanks @mentalblank
+- Add setting to add a list of trackers (from a URL) to every torrent and magnet that's added to rdt-client, thanks @mentalblank
+
+### Changed
+- The `User-Agent` header is now set on all requests to debrid providers' APIs. 
+
+## [2.0.113] - 2025-05-22
+### Fixed
+- Revert Synolog.Api.Client because of breaking changes.
+
+## [2.0.112] - 2025-05-18
+### Added
+- Add ability to disable the built in unpacking process by setting the "Maximum unpack processes" to 0.
+
+### Changed
+- Upgraded Angular to use control flow.
+
+### Fixed
+- Fixed dequeing issue.
+- Fixed logging handler for ProviderUpdater.
+
+## [2.0.111] - 2025-05-03
+### Added
+- Added button to register rdt-client as a handler for magnet links on [supported browsers](https://caniuse.com/mdn-api_navigator_registerprotocolhandler_scheme_parameter_magnet).
+
+## [2.0.110] - 2025-04-24
+### Fixed
+- Fixed build number in the app.
+
+## [2.0.109] - 2025-04-23
+### Fixed
+- Debrid Queue fixes (don't auto delete queued torrents, handle errors when dequeueing).
+- Censor download station password when logging settings at startup.
+- Set `HostDownloadAction` when auto-importing torrents.
+- Build GitHub release .zip on windows not linux.
+- Use arm GitHub Actions runner to build arm docker image.
+
+## [2.0.108] - 2025-04-13
+### Fixed
+- Fixed websocket UI updating.
+
+## [2.0.107] - 2025-04-13
+### Fixed
+- Fixed Docker release versioning.
+
+## [2.0.106] - 2025-04-13
+### Fixed
+- Changed how the GitHub release is created and how the changelog is generated.
+
+## [2.0.105] - 2025-04-13
+### Added
+- Add feature to limit the amount of torrents that get sent to the provider at the same time.
+### Fixed
+- Moved the websocket update process to its own background thread to improve UI update consistency.
+
+## [2.0.104] - 2025-04-12
+### Fixed
+- Update the version number
+
+## [2.0.103] - 2025-04-12
+### Added
+- Button to select all options when deleting a torrent, thanks @EugeneKallis
+- Add setting to ignore update notifications. A notification will appear regardless of this setting if any GitHub Security Advisories are published in this repo.
+### Changed
+- Download .zip of torrent files from TorBox when possible, thanks @asylumexp
+- Users of AllDebrid and RealDebrid will now have no files downloaded when all files are excluded by filters. Before, if all files were excluded, rdt-client would download all the files in the torrent.
+- Reduce number of calls to debrid provider API when no torrents need updating
+### Fixed
+- The dropdown navigation menu on mobile will now close when you navigate to another page
+- Long torrent names without spaces will now wrap across lines
+### Security
+- Require auth to change debrid api key
+
+## [2.0.102] - 2025-03-07
+### Changed
+- Fixed Angular build for Docker.
+
+## [2.0.101] - 2025-03-07
+### Changed
+- Fixed Angular build (again).
+
+## [2.0.100] - 2025-03-07
+### Changed
+- Fixed Angular build.
+
+## [2.0.99] - 2025-03-07
+### Security fix
+- The Api/Authentication/Update was not protected by authentication, meaning everyone could reset your password and gain access.
+
+### Added
+- Set the useragent for the Bezadd downloader to avoid getting blacklisted by Torbox.
+
+### Changed
+- Upgraded to Angular 19.
+- Upgraded to Torbox 1.5.
+
+
+## [2.0.98] - 2025-02-16
+### Added
+- Added unit tests, thanks @Cucumberrbob!
+
+### Changed
+- Fixed symlinks for AllDebrid.
+- Upgraded DebridLink.fr to the latest version.
+- Fixed nested files in the Premiumize Provider.
+- Fixed deleting of torrents in the watch folders.
+
+## [2.0.97] - 2025-02-16
+### Added
+- Added support for DebridLink.fr.
+
+### Fixed
+- Fixed for the internal downloader.
+- Added a column for torrent add date.
+- Upgraded AllDebrid API.
+
+## [2.0.96] - 2025-01-29
+### Added
+- Added support for the synology download manager.
+- Added a column for torrent add date.
+
+### Changed
+- Fixed for the Symlink downloader and AllDebrid.
+- Fixed setting the downloader when adding a torrent through the GUI.
+
+## [2.0.95] - 2025-01-19
+### Added
+- Added the /api/v2/transfer/info qBittorrent endpoint.
+
+### Changed
+- AllDebrid Symlink path fixes.
+
+## [2.0.94] - 2025-01-05
+### Changed
+- AllDebrid path fixes.
+
+## [2.0.93] - 2025-01-03
+### Changed
+- Torbox fixes.
+
+## [2.0.92] - 2024-12-18
+### Changed
+- Torbox fixes.
+
+## [2.0.91] - 2024-12-11
+### Changed
+- Torbox fixes.
+
+## [2.0.90] - 2024-12-06
+### Changed
+- Download individual files from Torbox instead of a zip file.
+
+### Removed
+- Removed ability to select instant files from AllDebrid.
+
+## [2.0.89] - 2024-11-24
+### Changed
+- Disabled selecting of files as Real-Debrid was the only provider that supported that.
+
+## [2.0.88] - 2024-11-24
+### Changed
+- Catch disabled instant availability endpoint from Real Debrid.
+
+## [2.0.87] - 2024-11-18
+### Added
+- Torbox support.
+- qBittorrent API authentication when no authentication is used.
+### Changed
+- .NET version changed to .NET 9.
+- Changed download limit to be split by active torrents.
+
+## [2.0.86] - 2024-09-03
+### Changed
+- Add potential fix for BASE_PATH.
+- Fixed creation of empty folders.
+
+## [2.0.85] - 2024-09-03
+### Changed
+- Reverted: Prevent the creation of download folders when using symlink.
+
+## [2.0.84] - 2024-09-02
+### Changed
+- Replace docker libssl1.1 with libssl3
+
+## [2.0.83] - 2024-09-02
+### Changed
+- Fixed progress reporting to the qBittorrent API endpoint.
+- Prevent the creation of download folders when using symlink.
+
+## [2.0.82] - 2024-09-02
+### Changed
+- Update packages and docker alpine version.
+
+## [2.0.81] - 2024-07-28
+### Changed
+- Improved handling of infringed torrents from real debrid.
+- Force update of torrent data from real-debrid when no filename is found in the local DB.
+- Fixed real-debrid deserialization issue when checking for instant available files.
+
+## [2.0.80] - 2024-07-13
+### Changed
+- Add rate limiter to retry requests that are rate limited from Real-Debrid.
+- Optimize calls to Real-Debrid API when torrents are finished and periodic updates.
+- Update to .NET 8.0.7
+
+## [2.0.79] - 2024-06-03
+### Changed
+- Fixed issue with qBittorrent progress sometimes throwing errors.
+
+## [2.0.78] - 2024-05-04
+### Changed
+- Fixed Aria2c download path issue when a category is set.
+
+## [2.0.77] - 2024-05-03
+### Changed
+- Fixed Aria2c download path issue when a category is set.
+
+## [2.0.76] - 2024-05-02
+### Changed
+- Fixed issues with the qBittorrent endpoint.
+- Fixed issue that could crash the torrent runner.
+
+## [2.0.75] - 2024-04-24
+### Changed
+- Fixed broken recursive symlink searching.
+
+## [2.0.74] - 2024-04-20
+### Added
+- Added support for symlink recursive searching.
+
+## [2.0.73] - 2024-04-11
+### Changed
+- Fixed another issue with the symlinker and file resolver.
+
+## [2.0.72] - 2024-04-10
+### Changed
+- Fixed issue with download speed test when the symlink downloader is selected.
+
+## [2.0.71] - 2024-04-10
+### Changed
+- Fixed symlink path matching bug.
+
+## [2.0.70] - 2024-04-10
+### Added
+- Added symlink logging.
+
+## [2.0.69] - 2024-04-09
+### Added
+- Added sorting to the GUI columns.
+### Changed
+- Fixed reloading on the /settings and other pages.
+
+## [2.0.68] - 2024-04-09
+### Changed
+- Base Href middleware fix that throws error when a response is not 200.
+
+## [2.0.67] - 2024-04-09
+### Changed
+- Symlink fixes.
+
+## [2.0.66] - 2024-04-08
+### Changed
+- Symlink fixes and improvements.
+
+## [2.0.65] - 2024-04-07
+### Added
+- Added option to configure the buffersize for the internal downloader.
+
+## [2.0.64] - 2024-04-06
+### Added
+- Add log level Verbose and add logging for the internal downloader, only works when both log levels are set to Verbose.
+
+### Changed
+- Add fixes for the symlink downloader
+- Add better indication when a torrent is stalled
+- Fixed download client selection on the torrents
+
 ## [2.0.63] - 2024-03-05
 ### Changed
 - When Sonarr/Radarr requests a torrent to be deleted, and its files too, then delete those files instead of ingoring it.
@@ -152,10 +459,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add the option "Post Download Action" to the Torrent settings popup.
 - Add a 2nd "Add Torrent" button on the add torrent page.
 - Add the Aria2c downloader to the Docker container and set it as the default downloader when running in docker.
-
-## [2.0.32] - 2023-06-27
-### Changed
-- Fixed the BaseURL content-length setting.
 
 ## [2.0.32] - 2023-06-27
 ### Changed
@@ -574,16 +877,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - First release
 - Add unraring progress and default auto download / auto remove options.
-
-[Unreleased]: https://github.com/rogerfar/rdt-client/compare/1.5.5...HEAD
-[1.5.5]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.5
-[1.5.4]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.4
-[1.5.3]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.3
-[1.5.2]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.2
-[1.5.1]: https://github.com/rogerfar/rdt-client/releases/tag/1.5.1
-[1.5.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.5
-[1.4.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.4
-[1.3.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.3
-[1.2.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.2
-[1.1.0]: https://github.com/rogerfar/rdt-client/releases/tag/1.1
-[1.0.0]: https://github.com/rogerfar/rdt-client/releases/tag/v1.0

@@ -1,5 +1,5 @@
-<div fxLayout.lt-lg="column" fxLayout.gt-sm="row" fxLayoutGap="20px" class="field">
-  <div fxFlex>
+<div class="field">
+  <div>
     <div class="field">
       <label class="label">Torrent file</label>
       <div class="file has-name">
@@ -46,9 +46,10 @@
       <label class="label">Downloader</label>
       <div class="control select is-fullwidth">
         <select [(ngModel)]="downloadClient" (ngModelChange)="setFinishAction()">
-          <option [ngValue]="0">Internal Downloader</option>
+          <option [ngValue]="0">Bezzad</option>
           <option [ngValue]="1">Aria2c</option>
           <option [ngValue]="2">Symlink Downloader</option>
+          <option [ngValue]="3">Synology DownloadStation</option>
         </select>
       </div>
       <p class="help">
@@ -71,35 +72,6 @@
     </div>
 
     <div class="field">
-      <label class="label">Post Torrent Download Action</label>
-      <div class="control select is-fullwidth">
-        <select [(ngModel)]="downloadAction" [disabled]="provider === 'AllDebrid' || provider === 'Premiumize'">
-          <option [ngValue]="0">Download all files</option>
-          <option [ngValue]="1">Download all available files</option>
-          <option [ngValue]="2">Manually pick files</option>
-        </select>
-      </div>
-      <p class="help">When a torrent is fully downloaded on the provider, perform this action.</p>
-      <p class="help" *ngIf="provider === 'AllDebrid'">
-        This option is only available for RealDebrid. AllDebrid and Premiumize will always download the full torrent.
-      </p>
-    </div>
-
-    <div
-      class="notification is-success is-light"
-      *ngIf="provider === 'AllDebrid' && availableFiles && availableFiles.length > 0"
-    >
-      This torrent is available for immediate download.
-    </div>
-
-    <div
-      class="notification is-warning is-light"
-      *ngIf="provider === 'AllDebrid' && availableFiles && availableFiles.length === 0"
-    >
-      This torrent is not available for immediate download.
-    </div>
-
-    <div class="field">
       <label class="label">Minimum file size to download</label>
       <div class="control">
         <div class="field has-addons" style="margin-bottom: 0">
@@ -111,11 +83,15 @@
           </div>
         </div>
       </div>
-      <p class="help" *ngIf="provider === 'AllDebrid'">
-        When downloading with AllDebrid it cannot be guaranteed that only files above this limit will be download as
-        some files are grouped together in 1 large archive.
-      </p>
-      <p class="help" *ngIf="downloadAction === 2">This setting does not apply to manually selected files.</p>
+      @if (provider === "AllDebrid") {
+        <p class="help">
+          When downloading with AllDebrid it cannot be guaranteed that only files above this limit will be download as
+          some files are grouped together in 1 large archive.
+        </p>
+      }
+      @if (downloadAction === 2) {
+        <p class="help">This setting does not apply to manually selected files.</p>
+      }
     </div>
 
     <div class="field">
@@ -131,8 +107,12 @@
         Select only the files that are matching this regular expression. Only use this setting OR the Exclude files
         setting, not both.
       </p>
-      <p class="help" *ngIf="downloadAction === 2">This setting does not apply to manually selected files.</p>
-      <p class="help is-danger" *ngIf="includeRegexError">{{ includeRegexError }}</p>
+      @if (downloadAction === 2) {
+        <p class="help">This setting does not apply to manually selected files.</p>
+      }
+      @if (includeRegexError) {
+        <p class="help is-danger">{{ includeRegexError }}</p>
+      }
     </div>
 
     <div class="field">
@@ -148,8 +128,12 @@
         Ignore files that are matching this regular expression. Only use this setting OR the Include files setting, not
         both.
       </p>
-      <p class="help" *ngIf="downloadAction === 2">This setting does not apply to manually selected files.</p>
-      <p class="help is-danger" *ngIf="excludeRegexError">{{ excludeRegexError }}</p>
+      @if (downloadAction === 2) {
+        <p class="help">This setting does not apply to manually selected files.</p>
+      }
+      @if (excludeRegexError) {
+        <p class="help is-danger">{{ excludeRegexError }}</p>
+      }
     </div>
 
     <div class="field">
@@ -157,11 +141,24 @@
       <div class="control select is-fullwidth">
         <select [(ngModel)]="finishedAction">
           <option [ngValue]="0">Do nothing</option>
-          <option [ngValue]="1" *ngIf="downloadClient !== 2">Remove torrent from provider and client</option>
-          <option [ngValue]="2" *ngIf="downloadClient !== 2">Remove torrent from provider</option>
+          @if (downloadClient !== 2) {
+            <option [ngValue]="1">Remove torrent from provider and client</option>
+            <option [ngValue]="2">Remove torrent from provider</option>
+          }
           <option [ngValue]="3">Remove torrent from client</option>
         </select>
       </div>
+    </div>
+
+    <div class="field">
+      <label class="label">Finished Action Delay (minutes)</label>
+      <div class="control is-fullwidth">
+        <input class="input" type="number" [(ngModel)]="finishedActionDelay" />
+      </div>
+      <p class="help">
+        When a torrent is finished downloading on the provider, perform this action. Use this setting if you only want
+        to add files to your debrid provider but not download them to the host.
+      </p>
     </div>
 
     <div class="field">
@@ -219,44 +216,13 @@
       </p>
     </div>
   </div>
-  <div fxFlex *ngIf="provider === 'RealDebrid'">
-    <div class="field">
-      <label class="label">Available files</label>
-      <p class="help">
-        These files are available for immediate download from your debrid provider. <br />
-        It is possible that there are more files in the torrent, which are not shown here.<br />
-      </p>
-      <div class="scroll-container">
-        <div class="field" *ngIf="downloadAction === 2">
-          <label class="checkbox is-fullwidth-label">
-            <input type="checkbox" [checked]="allSelected" (change)="downloadFileCheckedAll()" />
-            Select all
-          </label>
-        </div>
-        <div class="field" *ngIf="downloadAction === 2 && availableFiles !== null">
-          <label class="checkbox is-fullwidth-label" *ngFor="let file of availableFiles">
-            <input
-              type="checkbox"
-              [checked]="downloadFiles[file.filename]"
-              (change)="downloadFileChecked(file.filename)"
-            />
-            {{ file.filename }} ({{ file.filesize | filesize }})
-          </label>
-        </div>
-        <div class="field" *ngIf="downloadAction !== 2 && availableFiles !== null">
-          <label class="is-fullwidth-label is-block" *ngFor="let file of availableFiles">
-            <span [ngClass]="{ 'strike-through': isRegexExcluded(file) }">{{ file.filename }}</span>
-            <span *ngIf="file.filesize > 0">({{ file.filesize | filesize }})</span>
-          </label>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <div class="field">
   <div class="control">
-    <div class="notification is-danger is-light" *ngIf="error">{{ error }}</div>
+    @if (error) {
+      <div class="notification is-danger is-light">{{ error }}</div>
+    }
   </div>
 </div>
 
